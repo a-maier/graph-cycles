@@ -1,0 +1,16 @@
+[package]
+name = "graph-cycles"
+version = "0.1.0"
+edition = "2021"
+authors = ["Andreas Maier <andreas.martin.maier@desy.de>"]
+description = "Detect all cycles in a petgraph graph"
+license = "MIT or Apache-2.0"
+readme = "Readme.md"
+keywords = ["graph-algorithms"]
+categories = ["mathematics"]
+repository = "https://github.com/a-maier/graph-cycles"
+
+[dependencies]
+ahash = "0.8.2"
+petgraph = "0.6"
+thiserror = "1.0"
