@@ -46,7 +46,7 @@ use petgraph::{
 
 /// Trait for identifying cycles in a graph
 pub trait Cycles {
-    //! The node identifier of the underlying graph
+    /// The node identifier of the underlying graph
     type NodeId;
 
     /// Apply the `visitor` to each cycle until we are told to stop
