@@ -1,6 +1,6 @@
 [package]
 name = "graph-cycles"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 authors = ["Andreas Maier <andreas.martin.maier@desy.de>"]
 description = "Detect all cycles in a petgraph graph"
