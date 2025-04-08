@@ -39,9 +39,7 @@ use std::ops::ControlFlow;
 use ahash::AHashSet;
 use petgraph::{
     algo::tarjan_scc,
-    stable_graph::IndexType,
     visit::{GraphBase, IntoNeighbors, IntoNodeIdentifiers, NodeIndexable},
-    EdgeType, Graph,
 };
 
 /// Trait for identifying cycles in a graph
@@ -82,58 +80,38 @@ pub trait Cycles {
     fn cycles(&self) -> Vec<Vec<Self::NodeId>>;
 }
 
-impl<N, E, Ty: EdgeType, Ix: IndexType> Cycles for Graph<N, E, Ty, Ix> {
-    type NodeId = <Graph<N, E, Ty, Ix> as GraphBase>::NodeId;
-
+impl<Graph: GraphBase> Cycles for Graph
+where
+    for<'a> &'a Graph: IntoNodeIdentifiers + IntoNeighbors + NodeIndexable,
+    for<'a> <Graph as GraphBase>::NodeId:
+        From<<&'a Graph as GraphBase>::NodeId>,
+{
+    type NodeId = <Graph as GraphBase>::NodeId;
     fn visit_cycles<F, B>(&self, mut visitor: F) -> Option<B>
     where
-        F: FnMut(&Graph<N, E, Ty, Ix>, &[Self::NodeId]) -> ControlFlow<B>,
+        F: FnMut(&Graph, &[Self::NodeId]) -> ControlFlow<B>,
     {
         for component in tarjan_scc(self) {
             let mut finder = CycleFinder::new(self, component);
-            if let ControlFlow::Break(b) = finder.visit(&mut visitor) {
+            if let ControlFlow::Break(b) = finder.visit(&mut |g, nodes| {
+                let well_typed_nodes: Vec<_> =
+                    nodes.iter().map(|&node| node.into()).collect();
+                visitor(g, &well_typed_nodes)
+            }) {
                 return Some(b);
             }
         }
         None
     }
-
     fn cycles(&self) -> Vec<Vec<Self::NodeId>> {
         let mut cycles = Vec::new();
-        self.visit_all_cycles(|_, cycle| cycles.push(cycle.to_vec()));
+        self.visit_cycles(|_, cycle| {
+            cycles.push(cycle.to_vec());
+            ControlFlow::<(), ()>::Continue(())
+        });
         cycles
     }
 }
-
-// // TODO: when trying to use this on a petgraph::graph::Graph rust
-// //       complains that `IntoNeighbors` and `IntoNodeIdentifiers` are
-// //       not satisfied
-// impl<Graph> Cycles for Graph
-// where
-//     Graph: IntoNodeIdentifiers + IntoNeighbors + NodeIndexable,
-// {
-//     type NodeId = Graph::NodeId;
-
-//     fn visit_cycles<F, B>(&self, mut visitor: F) -> Option<B>
-//     where F: FnMut(&Graph, &[Self::NodeId]) -> ControlFlow<B> {
-//         for component in tarjan_scc(self) {
-//             let mut finder = CycleFinder::new(self, component);
-//             if let ControlFlow::Break(b) = finder.visit(&mut visitor) {
-//                 return Some(b);
-//             }
-//         }
-//         None
-//     }
-
-//     fn cycles(&self) -> Vec<Vec<Self::NodeId>>  {
-//         let mut cycles = Vec::new();
-//         self.visit_cycles(|_, cycle| {
-//             cycles.push(cycle.to_vec());
-//             ControlFlow::<(), ()>::Continue(())
-//         });
-//         cycles
-//     }
-// }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct CycleFinder<G, N> {
@@ -244,6 +222,17 @@ where
 
 #[cfg(test)]
 mod tests {
+    use petgraph::{Directed, graph::Graph, graphmap::GraphMap};
+
     #[test]
-    fn test() {}
+    fn test_graph() {
+        let g: Graph<usize, (), Directed> = Graph::new();
+        crate::Cycles::cycles(&g);
+    }
+
+    #[test]
+    fn test_graph_map() {
+        let g: GraphMap<usize, (), Directed> = GraphMap::new();
+        crate::Cycles::cycles(&g);
+    }
 }
