@@ -82,9 +82,10 @@ pub trait Cycles {
 
 impl<Graph: GraphBase> Cycles for Graph
 where
-    for<'a> &'a Graph: IntoNodeIdentifiers + IntoNeighbors + NodeIndexable,
-    for<'a> <Graph as GraphBase>::NodeId:
-        From<<&'a Graph as GraphBase>::NodeId>,
+    for<'a> &'a Graph: IntoNodeIdentifiers
+        + IntoNeighbors
+        + NodeIndexable
+        + GraphBase<NodeId = <Graph as GraphBase>::NodeId>,
 {
     type NodeId = <Graph as GraphBase>::NodeId;
     fn visit_cycles<F, B>(&self, mut visitor: F) -> Option<B>
@@ -93,11 +94,7 @@ where
     {
         for component in tarjan_scc(self) {
             let mut finder = CycleFinder::new(self, component);
-            if let ControlFlow::Break(b) = finder.visit(&mut |g, nodes| {
-                let well_typed_nodes: Vec<_> =
-                    nodes.iter().map(|&node| node.into()).collect();
-                visitor(g, &well_typed_nodes)
-            }) {
+            if let ControlFlow::Break(b) = finder.visit(&mut visitor) {
                 return Some(b);
             }
         }
