@@ -28,7 +28,7 @@ g.visit_all_cycles(|_g, c| {
 
 ## Caveats
 
-This crate is essentially untested.
+This crate is essentially untested. Tests are welcome!
 
 ## References
 
